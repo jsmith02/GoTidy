@@ -16,8 +16,9 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -36,16 +37,12 @@ var choreCmd = &cobra.Command{
 			alias string
 			cmd   string
 		}
-		type up struct {
-			alias string
-			up    []string
-		}
 		// reader := bufio.NewReader(os.Stdin)
 		// fmt.Println("Enter Command Alias (You'll use this to call the function later e.g. tidy dc for docker compose ): ")
 		// text, _ := reader.ReadString('\n')
 		// fmt.Println("Enter Command (Tidy will parse for variables and flags): ")
 		// text_, _ := reader.ReadString('\n')
-		text := "ssmg"
+		text := "ba"
 		text1 := "aws ssm get-parameter --name /test/just/bazoo --with-decryption "
 		upObj := chore{text, text1}
 		var flagCheck string = upObj.cmd
@@ -63,23 +60,29 @@ var choreCmd = &cobra.Command{
 				}
 			}
 		}
-		upToDo := up{text, cmdBroken}
-		fmt.Println(upToDo)
-		// homedir := os.Getenv(("HOME"))
-		u, _ := json.Marshal(upToDo)
-		fmt.Println(string(u))
-		// file, err := os.OpenFile(homedir+"/.tidy/up", os.O_WRONLY|os.O_APPEND, 0644)
-		// if err != nil {
-		// 	log.Fatalf("failed opening file: %s", err)
-		// }
-		// defer file.Close()
-		// len, err := file.WriteString(upFile)
-		// if err != nil {
-		// 	log.Fatalf("failed writing to file: %s", err)
-		// }
-		// fmt.Printf("\nLength: %d bytes", len)
-		// fmt.Printf("\nFile Name: %s", file.Name())
+		var cmdFlagged [1]string
+		for i := range cmdBroken {
+			cmdFlagged[0] = cmdFlagged[0] + " " + cmdBroken[i]
+		}
+		upToDo := chore{text, cmdFlagged[0]}
+		homedir := os.Getenv(("HOME"))
+		d1 := []byte(fmt.Sprintf("%v", upToDo))
+		s := string(d1)
+		f, err := os.OpenFile(homedir+"/.tidy/up", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		check(err)
+		defer f.Close()
+		if _, err := f.WriteString(s + "," + "\n"); err != nil {
+			log.Println(err)
+		}
+		// _ = ioutil.WriteFile(homedir+"/.tidy/up.json", file, 0644)
+
 	},
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }
 
 func init() {
