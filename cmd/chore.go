@@ -16,15 +16,16 @@ limitations under the License.
 package cmd
 
 import (
+	// "io"
 	"bufio"
-	"encoding/csv"
 	"fmt"
-	"io"
-	"log"
+	// "log"
 	"os"
 	"strconv"
 	"strings"
-
+	"encoding/gob"
+	"encoding/json"
+	// "encoding/csv"
 	"github.com/spf13/cobra"
 )
 
@@ -37,8 +38,8 @@ var choreCmd = &cobra.Command{
 	itself to store in the .tidy/up directory`,
 	Run: func(cmd *cobra.Command, args []string) {
 		type chore struct {
-			alias string
-			cmd   string
+			Alias string `json:"alias"`
+			Cmd   string `json:"cmd"`
 		}
 		// reader := bufio.NewReader(os.Stdin)
 		// fmt.Println("Enter Command Alias (You'll use this to call the function later e.g. tidy dc for docker compose ): ")
@@ -48,7 +49,7 @@ var choreCmd = &cobra.Command{
 		text := "ba"
 		text1 := "aws ssm get-parameter --name /test/just/bazoo --with-decryption "
 		upObj := chore{text, text1}
-		var flagCheck string = upObj.cmd
+		var flagCheck string = upObj.Cmd
 		var cmdBroken = strings.Fields(flagCheck)
 		for i := range cmdBroken {
 			var flagBool = strings.HasPrefix(cmdBroken[i], "-")
@@ -66,47 +67,63 @@ var choreCmd = &cobra.Command{
 			}
 		}
 		var cmdFlagged [1]string
+		type M map[string]interface{}
 		for i := range cmdBroken {
 			cmdFlagged[0] = cmdFlagged[0] + " " + cmdBroken[i]
 		}
-		upToDo := chore{text, cmdFlagged[0]}
 		homedir := os.Getenv(("HOME"))
-		d1 := []byte(fmt.Sprintf("%v", upToDo))
-		s := string(d1)
-		// Write comma seperated commands to up for later retrieval
-		auditCmd(s, homedir)
-		f, err := os.OpenFile(homedir+"/.tidy/up", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		upFile := homedir+"/.tidy/up"
+		encodeFile, err := os.OpenFile(upFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		UpToFile, err := json.Marshal(M{"Alias":text, "cmd":cmdFlagged[0]})
 		check(err)
-		defer f.Close()
-		if _, err := f.WriteString(s + "," + "\n"); err != nil {
-			log.Println(err)
+		// Since this is a binary format large parts of it will be unreadable
+		encoder := gob.NewEncoder(encodeFile)
+		// Write to the file
+		if err := encoder.Encode(UpToFile); err != nil {
+			panic(err)
+		}	
+		encodeFile.Close()
+		// This needs to be moved up
+		size, err := GetFileSize(upFile)
+		check(err)
+		// If there are chores already in the file, check for duplicates.
+		if size > 0 {
+			fmt.Println(size)
+			auditCmd(string(UpToFile), upFile)
+		} else {
+			fmt.Println("No File Content")
 		}
+		// // Write comma seperated commands to up for later retrieval
+		// f, err := os.OpenFile(homedir+"/.tidy/up", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		// check(err)
+		// defer f.Close()
+		// if _, err := f.WriteString(string(upMap) + "," + "\n"); err != nil {
+		// 	log.Println(err)
+		// }
 
 	},
 }
 
-func auditCmd(s string, homedir string) {
-	type chore struct {
-		alias string
-		cmd   string
-	}
-	csvFile, err := os.Open(homedir + "/.tidy/up")
+// Check file size of up to see if this is the first alias.
+func GetFileSize(filepath string) (int64, error) {
+    fi, err := os.Stat(filepath)
+    if err != nil {
+        return 0, err
+    }
+    // get the size
+    return fi.Size(), nil
+}
+
+
+func auditCmd(upMap string, upFile string){
+	inFile, err := os.Open(upFile)
 	check(err)
-	reader := csv.NewReader(bufio.NewReader(csvFile))
-	for {
-		line, error := reader.Read()
-		if error == io.EOF {
-			break
-		} else if error != nil {
-			log.Fatal(error)
-		}
-		existingUp := chore{
-			alias: line[0],
-			cmd:   line[1],
-		}
-		// Leaving off here for now, figure otu comparison of keys
-		// COnvert s back to struct check if exists already.
-	}
+	defer inFile.Close()
+	scanner := bufio.NewScanner(inFile)
+	for scanner.Scan() {
+		fmt.Printf("%T\n", scanner.Text())
+		fmt.Println(scanner.Text()) // the line
+	  }
 }
 
 func check(e error) {
