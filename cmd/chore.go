@@ -16,7 +16,10 @@ limitations under the License.
 package cmd
 
 import (
+	"bufio"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -46,12 +49,14 @@ var choreCmd = &cobra.Command{
 		text1 := "aws ssm get-parameter --name /test/just/bazoo --with-decryption "
 		upObj := chore{text, text1}
 		var flagCheck string = upObj.cmd
-		// var aliasCheck = upObj.alias
 		var cmdBroken = strings.Fields(flagCheck)
 		for i := range cmdBroken {
 			var flagBool = strings.HasPrefix(cmdBroken[i], "-")
 			if flagBool == true {
 				// actual command components
+				// If the flag is not the last in the command, substitute
+				// <| varN |> where N is the index in the command for later
+				// parsing.
 				if i+1 < len(cmdBroken) {
 					cmdBroken[i+1] = "<| var" + strconv.Itoa(i+1) + " |>"
 				}
@@ -68,15 +73,40 @@ var choreCmd = &cobra.Command{
 		homedir := os.Getenv(("HOME"))
 		d1 := []byte(fmt.Sprintf("%v", upToDo))
 		s := string(d1)
+		// Write comma seperated commands to up for later retrieval
+		auditCmd(s, homedir)
 		f, err := os.OpenFile(homedir+"/.tidy/up", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		check(err)
 		defer f.Close()
 		if _, err := f.WriteString(s + "," + "\n"); err != nil {
 			log.Println(err)
 		}
-		// _ = ioutil.WriteFile(homedir+"/.tidy/up.json", file, 0644)
 
 	},
+}
+
+func auditCmd(s string, homedir string) {
+	type chore struct {
+		alias string
+		cmd   string
+	}
+	csvFile, err := os.Open(homedir + "/.tidy/up")
+	check(err)
+	reader := csv.NewReader(bufio.NewReader(csvFile))
+	for {
+		line, error := reader.Read()
+		if error == io.EOF {
+			break
+		} else if error != nil {
+			log.Fatal(error)
+		}
+		existingUp := chore{
+			alias: line[0],
+			cmd:   line[1],
+		}
+		// Leaving off here for now, figure otu comparison of keys
+		// COnvert s back to struct check if exists already.
+	}
 }
 
 func check(e error) {
