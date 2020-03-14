@@ -31,7 +31,7 @@ import (
 // upCmd represents the up command
 var upCmd = &cobra.Command{
 	Use:   "up",
-	Short: "A brief description of your command",
+	Short: "Run your aliased command by running tidy up <cmd_here>",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -111,7 +111,7 @@ func formatCmd(count int, cmdFmt []string, args []string) []string {
 	var index [10]int
 	for i := range cmdFmt {
 		// track how many values to format left
-		matched, err := regexp.Match(`\|\_var\d*\_\|`, []byte(cmdFmt[i]))
+		matched, err := regexp.Match(`\|\_(var\d*|var)\_\|`, []byte(cmdFmt[i]))
 		check(err)
 		if matched == true {
 			index[i] = i

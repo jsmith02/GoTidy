@@ -7,9 +7,10 @@ import (
 )
 
 var countCmd = &cobra.Command{
-	Use:   "count",
-	Short: "A brief description of your command",
-	Long:  `A longer description of count command.`,
+	Use:     "count",
+	Aliases: []string{"#"},
+	Short:   "The number of chores in your up.",
+	Long:    `Iterates over file and indicates how many aliases are configured.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("count called")
 		number, _ := cmd.Flags().GetInt("number")
