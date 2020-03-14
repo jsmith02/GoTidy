@@ -21,14 +21,15 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 // upCmd represents the up command
 var upCmd = &cobra.Command{
-	var s string,
-	Use:   "poop" + s,
+	Use:   "up",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -37,19 +38,39 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("test")
-		// var c string
-		// c = "ba"
-		// homedir := os.Getenv(("HOME"))
-		// upFile := homedir + "/.tidy/up"
-		// size, err := GetFileSize(upFile)
-		// check(err)
-		// if size != 0 {
-		// 	cmdFrame := parseCmd(c, upFile)
-		// 	fmt.Println(cmdFrame)
-		},
+		homedir := os.Getenv(("HOME"))
+		upFile := homedir + "/.tidy/up"
+		size, err := GetFileSize(upFile)
+		check(err)
+		// If the up file contains data
+		if size != 0 {
+			cmdFrame := findCmd(args[0], upFile)
+			var cmdFmt = strings.Fields(cmdFrame)
+			var count int
+			for i := range cmdFmt {
+				matched, err := regexp.Match(`\|\_var\d*\_\|`, []byte(cmdFmt[i]))
+				check(err)
+				if matched == true {
+					count = count + 1
+					continue
+				}
+			}
+			if count != len(args[1:]) {
+				fmt.Println("Incorrect number of arguments passed for alias " + args[0] + ".")
+				fmt.Println("Arguments needed: " + string(count))
+				fmt.Println("Arguments provided: " + string(len(args[1:])))
 
-	}
+			} else {
+				taskAtHand := formatCmd(count, cmdFmt, args)
+				fmt.Println("here")
+				fmt.Println(taskAtHand)
+			}
+
+		} else {
+			fmt.Println("No chores in up.")
+		}
+	},
+}
 
 func init() {
 	rootCmd.AddCommand(upCmd)
@@ -65,7 +86,30 @@ func init() {
 	// upCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func parseCmd(c string, upFile string) string {
+// Formats chores with variables supplied in command
+func formatCmd(count int, cmdFmt []string, args []string) string {
+	var trackFormat int
+	var stat string
+	for i := range cmdFmt {
+		// track how many values to format left
+		matched, err := regexp.Match(`\|\_var\d*\_\|`, []byte(cmdFmt[i]))
+		check(err)
+		if matched == true {
+			trackFormat = trackFormat + 1
+			fmt.Println(args[trackFormat])
+			continue
+		} else {
+			if strings.Contains(stat, cmdFmt[i]) {
+				continue
+			} else {
+				stat += stat + cmdFmt[i] + " "
+			}
+		}
+	}
+	return stat
+}
+
+func findCmd(args string, upFile string) string {
 	// Look for duplicate command aliases
 	// Open up, look for keys
 	file, err := os.Open(upFile)
@@ -82,11 +126,8 @@ func parseCmd(c string, upFile string) string {
 		var iot chore
 		err := json.Unmarshal(c, &iot)
 		check(err)
-		if fmt.Sprint(iot.Alias[0]) == string(c) {
-			return iot.Alias[0]
-		} else {
-			continue
+		if fmt.Sprint(iot.Alias[0]) == args {
+			return iot.Cmd[0]
 		}
 	}
-
 }
