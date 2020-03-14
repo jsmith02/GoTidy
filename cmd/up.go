@@ -20,7 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 
@@ -56,14 +58,13 @@ to quickly create a Cobra application.`,
 				}
 			}
 			if count != len(args[1:]) {
-				fmt.Println("Incorrect number of arguments passed for alias " + args[0] + ".")
-				fmt.Println("Arguments needed: " + string(count))
-				fmt.Println("Arguments provided: " + string(len(args[1:])))
+				fmt.Println("Incorrect number of arguments passed for alias, \"" + args[0] + "\".")
+				fmt.Printf("Arguments needed: %d\n", count)
+				fmt.Printf("Arguments provided: %d\n", len(args[1:]))
 
 			} else {
 				taskAtHand := formatCmd(count, cmdFmt, args)
-				fmt.Println("here")
-				fmt.Println(taskAtHand)
+				exeCmd(taskAtHand)
 			}
 
 		} else {
@@ -86,27 +87,41 @@ func init() {
 	// upCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
+// Executes command
+func exeCmd(taskAtHand []string) {
+	var command []string
+	var binCmd string
+	binCmd = taskAtHand[0]
+	command = taskAtHand[1:]
+	path, err := exec.LookPath(binCmd)
+	if err != nil {
+		log.Fatal("Tidy can't find " + binCmd + " in your path or bin.")
+	}
+	cmd := exec.Command(path, command...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		log.Fatalf("cmd.Run() failed with %s\n", err)
+	}
+}
+
 // Formats chores with variables supplied in command
-func formatCmd(count int, cmdFmt []string, args []string) string {
+func formatCmd(count int, cmdFmt []string, args []string) []string {
 	var trackFormat int
-	var stat string
+	var index [10]int
 	for i := range cmdFmt {
 		// track how many values to format left
 		matched, err := regexp.Match(`\|\_var\d*\_\|`, []byte(cmdFmt[i]))
 		check(err)
 		if matched == true {
+			index[i] = i
 			trackFormat = trackFormat + 1
-			fmt.Println(args[trackFormat])
+			cmdFmt[i] = args[trackFormat]
 			continue
-		} else {
-			if strings.Contains(stat, cmdFmt[i]) {
-				continue
-			} else {
-				stat += stat + cmdFmt[i] + " "
-			}
 		}
 	}
-	return stat
+	return cmdFmt
 }
 
 func findCmd(args string, upFile string) string {
@@ -120,7 +135,7 @@ func findCmd(args string, upFile string) string {
 	for {
 		line, err = reader.ReadString('\n')
 		if err != io.EOF {
-			fmt.Printf(" > Failed!: %v\n", err)
+			fmt.Printf(" > butts!: %v\n", err)
 		}
 		c := []byte(line)
 		var iot chore
