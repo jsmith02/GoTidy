@@ -19,7 +19,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
+	"log"
 	"strconv"
 
 	// "log"
@@ -47,8 +47,8 @@ var choreCmd = &cobra.Command{
 		// text, _ := reader.ReadString('\n')
 		// fmt.Println("Enter Command (Tidy will parse for variables and flags): ")
 		// text_, _ := reader.ReadString('\n')
-		ali := "gc"
-		c := "git commit -m "
+		ali := "gp"
+		c := "git push"
 		homedir := os.Getenv(("HOME"))
 		upFile := homedir + "/.tidy/up"
 		size, err := GetFileSize(upFile)
@@ -79,26 +79,22 @@ func auditCmd(ali string, upFile string) {
 	// Open up, look for keys
 	file, err := os.Open(upFile)
 	check(err)
-	reader := bufio.NewReader(file)
-	defer file.Close()
-	var line string
-	for {
-		line, err = reader.ReadString('\n')
-		if err != io.EOF {
-			fmt.Printf(" > Failed!: %v\n", err)
-		} else {
-			return
-		}
-		c := []byte(line)
+	reader := bufio.NewScanner(file)
+	for reader.Scan() {
+		c := []byte(reader.Text())
 		var iot chore
-		err := json.Unmarshal(c, &iot)
+		err = json.Unmarshal(c, &iot)
 		check(err)
 		if fmt.Sprint(iot.Alias[0]) == ali {
 			fmt.Println("Woops, that alias is already used!")
-			break
+			os.Exit(0)
 		}
-	}
+		defer file.Close()
+		if err := reader.Err(); err != nil {
+			log.Fatal(err)
+		}
 
+	}
 }
 
 // Writes aliases to up
@@ -142,7 +138,7 @@ func writeToDo(ali string, c string, homedir string, upFile string) {
 	f, err := os.OpenFile(upFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	check(err)
 	defer f.Close()
-	if _, err = f.WriteString(string(jsonData)); err != nil {
+	if _, err = f.WriteString(string(jsonData) + "\n"); err != nil {
 		panic(err)
 	}
 	fmt.Println("Alias configured for " + upList.Alias[0] + ".")

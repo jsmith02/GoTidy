@@ -19,7 +19,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -102,7 +101,7 @@ func exeCmd(taskAtHand []string) {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		log.Fatalf("cmd.Run() failed with %s\n", err)
+		os.Exit(0)
 	}
 }
 
@@ -134,9 +133,7 @@ func findCmd(args string, upFile string) string {
 	var line string
 	for {
 		line, err = reader.ReadString('\n')
-		if err != io.EOF {
-			fmt.Printf(" > butts!: %v\n", err)
-		}
+		check(err)
 		c := []byte(line)
 		var iot chore
 		err := json.Unmarshal(c, &iot)
