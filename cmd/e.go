@@ -16,9 +16,13 @@ package cmd
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/dixonwille/wmenu"
 	"github.com/spf13/cobra"
@@ -33,20 +37,8 @@ var eCmd = &cobra.Command{
 		// Function to edit configs
 		homedir := os.Getenv(("HOME"))
 		upFile := homedir + "/.tidy/up"
-		menu := wmenu.NewMenu("Which config do you want to edit?")
-		menu.Action(func(opts []wmenu.Opt) error { fmt.Printf(opts[0].Text + " is your favorite food."); return nil })
-		f, err := os.Open(upFile)
-		check(err)
-		defer f.Close()
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			line := scanner.Text()
-			menu.Option(line, nil, true, nil)
-		}
-		err = menu.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
+		edit := getRow(upFile)
+		keyOrValue(edit, upFile)
 	},
 }
 
@@ -62,4 +54,172 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// eCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+// A menu to select which row you'd like to edit
+func getRow(upFile string) string {
+	var upTask string
+	menu := wmenu.NewMenu("Which config do you want to edit?")
+	menu.Action(func(opts []wmenu.Opt) error { upTask = opts[0].Text; return nil })
+	f, err := os.Open(upFile)
+	check(err)
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		menu.Option(line, nil, true, nil)
+	}
+	err = menu.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return upTask
+}
+
+// Determines which part of a command we adjust, assembles new value.
+// Returned as string to main body of command.
+func keyOrValue(edit string, upFile string) {
+	var changeReq string
+	var oldUp chore
+	eStr := []byte(edit)
+	err := json.Unmarshal(eStr, &oldUp)
+	check(err)
+	fmt.Printf("Alias: %s", oldUp.Alias[0]+"\n")
+	fmt.Printf("Command: %s", oldUp.Cmd[0]+"\n")
+	fmt.Println("--------------------------------------------------")
+	menu := wmenu.NewMenu("Which would you like to edit")
+	menu.Action(func(opts []wmenu.Opt) error { changeReq = opts[0].Text; return nil })
+	menu.Option("Alias", nil, true, nil)
+	menu.Option("Command", nil, false, nil)
+	err = menu.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("--------------------------------------------------")
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Editing " + changeReq + "...")
+	fmt.Println("Please update the " + changeReq + " to the new value: ")
+	userEdit, _ := reader.ReadString('\n')
+	fmt.Println("--------------------------------------------------")
+	var index int
+	index = findLine(oldUp.Alias[0], upFile)
+	removeLine(upFile, index)
+	writeReplace(changeReq, userEdit, oldUp.Alias[0], oldUp.Cmd[0])
+}
+
+func findLine(oldAlias string, upFile string) int {
+	// Look for duplicate command aliases
+	// Open up, look for keys
+	file, err := os.Open(upFile)
+	check(err)
+	reader := bufio.NewReader(file)
+	defer file.Close()
+	var line string
+	var cnt int
+	cnt = 0
+	for {
+		line, err = reader.ReadString('\n')
+		check(err)
+		c := []byte(line)
+		var oleAle chore
+		err := json.Unmarshal(c, &oleAle)
+		check(err)
+		cnt = cnt + 1
+		if fmt.Sprint(oleAle.Alias[0]) == oldAlias {
+			return cnt
+		}
+	}
+}
+
+// Deletes
+func removeLine(path string, lineNumber int) {
+	file, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
+	info, _ := os.Stat(path)
+	mode := info.Mode()
+
+	array := strings.Split(string(file), "\n")
+	array = append(array[:lineNumber], array[lineNumber+1:]...)
+	ioutil.WriteFile(path, []byte(strings.Join(array, "\n")), mode)
+}
+
+// Writes Replacements to up
+func writeReplace(changeReq string, userEdit string, oldAlias string, oldCmd string) {
+	var newUp chore
+	// if request was to change the alias, new chore
+	if changeReq == "Alias" {
+		newUp = chore{
+			Alias: []string{strings.TrimSpace(userEdit)},
+			Cmd:   []string{strings.TrimSpace(oldCmd)},
+		}
+		// Other way around down here.
+	} else {
+		newUp = chore{
+			Alias: []string{strings.TrimSpace(oldAlias)},
+			Cmd:   []string{strings.TrimSpace(userEdit)},
+		}
+	}
+	var jsonData []byte
+	jsonData, err := json.Marshal(newUp)
+	check(err)
+	var ToDo chore
+	err = json.Unmarshal(jsonData, &ToDo)
+	check(err)
+	var flagCheck string = ToDo.Cmd[0]
+	var cmdBroken = strings.Fields(flagCheck)
+	// If we are editing the command, it has to be rebroken
+	if changeReq == "Command" {
+	for i := range cmdBroken {
+		var flagBool = strings.HasPrefix(cmdBroken[i], "-")
+		if flagBool == true {
+			// actual command components
+			// If the flag is not the last in the command, substitute
+			// <| varN |> where N is the index in the command for later
+			// parsing.
+			if i+1 < len(cmdBroken) {
+				cmdBroken[i+1] = "|_var" + strconv.Itoa(i+1) + "_|"
+			}
+			if i+1 > len(cmdBroken) {
+				continue
+			}
+		}
+	} else {
+		
+	}
+	}
+	if changeReq == "Alias" {
+	upList := chore{
+		Alias: []string{strings.TrimSpace(userEdit)},
+		Cmd:   []string{strings.Join(oldCmd)},
+	} } else {
+	upList := chore{
+		Alias: []string{strings.TrimSpace(oldAlias)},
+		Cmd:   []string{strings.Join(cmdBroken, " ")},
+	}
+	jsonData, err = json.Marshal(upList)
+	check(err)
+	var toList chore
+	err = json.Unmarshal(jsonData, &toList)
+	check(err)
+	f, err := os.OpenFile(upFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	check(err)
+	defer f.Close()
+	if _, err = f.WriteString(string(jsonData) + "\n"); err != nil {
+		panic(err)
+	}
+	fmt.Println("Alias configured for " + upList.Alias[0])
+}
+
+type chore struct {
+	Alias []string `json:"alias"`
+	Cmd   []string `json:"cmd"`
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }
