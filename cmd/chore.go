@@ -47,58 +47,17 @@ var choreCmd = &cobra.Command{
 		// text, _ := reader.ReadString('\n')
 		// fmt.Println("Enter Command (Tidy will parse for variables and flags): ")
 		// text_, _ := reader.ReadString('\n')
-		ali := "ba"
-		c := "aws ssm get-parameter --name /test/just/bazoo --with-decryptin "
+		ali := "gc"
+		c := "git commit -m "
 		homedir := os.Getenv(("HOME"))
 		upFile := homedir + "/.tidy/up"
 		size, err := GetFileSize(upFile)
 		check(err)
 		if size != 0 {
 			auditCmd(ali, upFile)
+			writeToDo(ali, c, homedir, upFile)
 		} else {
-			upObj := chore{
-				Alias: []string{ali},
-				Cmd:   []string{c},
-			}
-			var jsonData []byte
-			jsonData, err := json.Marshal(upObj)
-			check(err)
-			var ToDo chore
-			err = json.Unmarshal(jsonData, &ToDo)
-			check(err)
-			var flagCheck string = ToDo.Cmd[0]
-			var cmdBroken = strings.Fields(flagCheck)
-			for i := range cmdBroken {
-				var flagBool = strings.HasPrefix(cmdBroken[i], "-")
-				if flagBool == true {
-					// actual command components
-					// If the flag is not the last in the command, substitute
-					// <| varN |> where N is the index in the command for later
-					// parsing.
-					if i+1 < len(cmdBroken) {
-						cmdBroken[i+1] = "| var" + strconv.Itoa(i+1) + " |"
-					}
-					if i+1 > len(cmdBroken) {
-						continue
-					}
-				}
-			}
-			upList := chore{
-				Alias: []string{ali},
-				Cmd:   []string{strings.Join(cmdBroken, " ")},
-			}
-			jsonData, err = json.Marshal(upList)
-			check(err)
-			var toList chore
-			err = json.Unmarshal(jsonData, &toList)
-			check(err)
-			f, err := os.OpenFile(upFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			check(err)
-			defer f.Close()
-			if _, err = f.WriteString(string(jsonData)); err != nil {
-				panic(err)
-			}
-			fmt.Println("Alias configured for " + upList.Alias[0] + ".")
+			writeToDo(ali, c, homedir, upFile)
 		}
 	},
 }
@@ -127,6 +86,8 @@ func auditCmd(ali string, upFile string) {
 		line, err = reader.ReadString('\n')
 		if err != io.EOF {
 			fmt.Printf(" > Failed!: %v\n", err)
+		} else {
+			return
 		}
 		c := []byte(line)
 		var iot chore
@@ -138,6 +99,53 @@ func auditCmd(ali string, upFile string) {
 		}
 	}
 
+}
+
+// Writes aliases to up
+func writeToDo(ali string, c string, homedir string, upFile string) {
+	upObj := chore{
+		Alias: []string{ali},
+		Cmd:   []string{c},
+	}
+	var jsonData []byte
+	jsonData, err := json.Marshal(upObj)
+	check(err)
+	var ToDo chore
+	err = json.Unmarshal(jsonData, &ToDo)
+	check(err)
+	var flagCheck string = ToDo.Cmd[0]
+	var cmdBroken = strings.Fields(flagCheck)
+	for i := range cmdBroken {
+		var flagBool = strings.HasPrefix(cmdBroken[i], "-")
+		if flagBool == true {
+			// actual command components
+			// If the flag is not the last in the command, substitute
+			// <| varN |> where N is the index in the command for later
+			// parsing.
+			if i+1 < len(cmdBroken) {
+				cmdBroken[i+1] = "|_var" + strconv.Itoa(i+1) + "_|"
+			}
+			if i+1 > len(cmdBroken) {
+				continue
+			}
+		}
+	}
+	upList := chore{
+		Alias: []string{ali},
+		Cmd:   []string{strings.Join(cmdBroken, " ")},
+	}
+	jsonData, err = json.Marshal(upList)
+	check(err)
+	var toList chore
+	err = json.Unmarshal(jsonData, &toList)
+	check(err)
+	f, err := os.OpenFile(upFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	check(err)
+	defer f.Close()
+	if _, err = f.WriteString(string(jsonData)); err != nil {
+		panic(err)
+	}
+	fmt.Println("Alias configured for " + upList.Alias[0] + ".")
 }
 
 type chore struct {
