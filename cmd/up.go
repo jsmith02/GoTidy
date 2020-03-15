@@ -22,6 +22,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -39,8 +40,11 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		homedir := os.Getenv(("HOME"))
-		upFile := homedir + "/.tidy/up"
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal("Could not determine user home directory")
+		}
+		upFile := filepath.Join(homeDir, ".tidy", "up")
 		size, err := GetFileSize(upFile)
 		check(err)
 		// If the up file contains data

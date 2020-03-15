@@ -21,6 +21,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -35,8 +36,13 @@ var eCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Function to edit configs
-		homedir := os.Getenv(("HOME"))
-		upFile := homedir + "/.tidy/up"
+
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal("Could not determine user home directory")
+		}
+
+		upFile := filepath.Join(homeDir, ".tidy", "up")
 		edit := getRow(upFile)
 		keyOrValue(edit, upFile)
 	},
@@ -184,8 +190,13 @@ func writeReplace(changeReq string, userEdit string, oldAlias string, oldCmd str
 			}
 		}
 	}
-	homedir := os.Getenv(("HOME"))
-	upFile := homedir + "/.tidy/up"
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal("Could not determine user home directory")
+	}
+
+	upFile := filepath.Join(homeDir, ".tidy", "up")
 	if changeReq == "Alias" {
 		oldconv := []string{oldCmd}
 		upList := chore{
