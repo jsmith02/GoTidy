@@ -28,7 +28,7 @@ gp : git push
 ssmp : aws ssm put-parameter --name |_var_| --type |_var_| --value |_var_|
 di : docker images
 ecr : aws ecr get-login --no-include-email
-p : psql -h |_var2_| -U |_var_| |_var_|
+p : psql -h |_var_| -U |_var_| |_var_|
 de : docker exec -it |_var_| /bin/sh
 dont : aws ssm get-paramter --name |_var_| --with-decryption
 
@@ -67,7 +67,7 @@ jms@jms-desktop:~/go/src/GoTidy$ tidy e
 1) *{"alias":["do"],"cmd":["aws ssm get-parameter --region |_var_| --name |_var_| --with-decryption"]}
 2) *{"alias":["gc"],"cmd":["git commit -m |_var_|"]}
 3) *{"alias":["gp"],"cmd":["git push"]}
-4) *{"alias":["ssmp"],"cmd":["aws ssm put-parameter --name |_var_| --type |_var_| --value |_var8_|"]}
+4) *{"alias":["ssmp"],"cmd":["aws ssm put-parameter --name |_var_| --type |_var_| --value |_var_|"]}
 5) *{"alias":["di"],"cmd":["docker images"]}
 6) *{"alias":["ecr"],"cmd":["aws ecr get-login --no-include-email"]}
 7) *{"alias":["p"],"cmd":["psql -h |_var_| -U |_var_| |_var_|"]}
