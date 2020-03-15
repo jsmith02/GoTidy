@@ -110,8 +110,9 @@ Available Commands:
 
 Flags:
   -h, --help   help for tidy
-
 Use "tidy [command] --help" for more information about a command.
+
+
 ### To Do:
 
 1. Add optional description
