@@ -1,4 +1,4 @@
-// Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+// Copyright © 2020 Joseph Smith smith.josephm@gmail.com
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 // delCmd represents the del command
 var delCmd = &cobra.Command{
-	Use:   "delete",
+	Use:     "delete",
 	Aliases: []string{"del"},
-	Short: "Delete value from up by specifying alias, can also be called with del",
+	Short:   "Delete value from up by specifying alias, can also be called with del",
 	Long: `Specify an existing alias to delete from your up file. 
 	Tidy will look for it in your up, if it can't find it, it will say so. 
 
@@ -47,16 +47,16 @@ var delCmd = &cobra.Command{
 		} else {
 			for i := range args {
 				if args[i] != "" {
-				index := findLine(args[i], upFile)
-				removeLine(upFile, index)
-				fmt.Println("Removed " + args[i] + " from up.")
-			} else {
-				fmt.Println("Please provide an alias to delete.")
-				os.Exit(0)
+					index := findLine(args[i], upFile)
+					removeLine(upFile, index)
+					fmt.Println("Removed " + args[i] + " from up.")
+				} else {
+					fmt.Println("Please provide an alias to delete.")
+					os.Exit(0)
+				}
 			}
 		}
-	}
-},
+	},
 }
 
 func init() {
