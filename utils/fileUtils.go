@@ -46,7 +46,6 @@ func RemoveLineFromFile(path string, n int, outputPath string) error {
 	if n == len(*nlIdx)+1 {
 		end = len(content)
 	} else {
-		fmt.Printf("%d : %d\n", len(*nlIdx), n)
 		end = (*nlIdx)[n-1] + 1
 	}
 
