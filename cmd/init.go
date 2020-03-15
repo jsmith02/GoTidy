@@ -17,7 +17,9 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -30,20 +32,26 @@ var initCmd = &cobra.Command{
 	Long: `Adds a directory called .tidy and a file to store aliases in called "up".
 	It looks explicitly for the $HOME directory.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		tidypath := ".tidy"
-		homedir := os.Getenv(("HOME"))
-		up := "up"
-		if _, err := os.Stat(homedir + "/" + tidypath); os.IsNotExist(err) {
+
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal("Could not determine user home directory")
+		}
+
+		tidyPath := filepath.Join(homeDir, ".tidy")
+		upPath := filepath.Join(tidyPath, "up")
+
+		if _, err := os.Stat(tidyPath); os.IsNotExist(err) {
 			// .tidy does not already exist.
 			fmt.Println("Creating your .tidy/up...")
-			os.MkdirAll(homedir+"/"+tidypath, 0777)
-			os.Create(homedir + "/" + tidypath + "/" + up)
+			os.MkdirAll(tidyPath, 0777)
+			os.Create(upPath)
 			fmt.Println(".tidy/up configured.")
 
 		} else {
-			if _, err := os.Stat(homedir + "/" + tidypath + "/" + up); os.IsNotExist(err) {
+			if _, err := os.Stat(upPath); os.IsNotExist(err) {
 				fmt.Println("Missing up... creating for you now...")
-				os.Create(homedir + "/" + tidypath + "/" + up)
+				os.Create(upPath)
 				fmt.Println(".tidy/up configured.")
 			} else {
 				fmt.Println(".tidy/up already configured.")

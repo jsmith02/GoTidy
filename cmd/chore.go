@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -40,8 +40,13 @@ var choreCmd = &cobra.Command{
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("Enter Command Alias (You'll use this to call the function later e.g. tidy dc for docker compose ): ")
 		ali, _ := reader.ReadString('\n')
-		homedir := os.Getenv(("HOME"))
-		upFile := homedir + "/.tidy/up"
+
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal("Could not determine user home directory")
+		}
+
+		upFile := filepath.Join(homeDir, ".tidy", "up")
 		size, err := GetFileSize(upFile)
 		check(err)
 		if size != 0 {
@@ -51,7 +56,7 @@ var choreCmd = &cobra.Command{
 		c, _ := reader.ReadString('\n')
 		// ali := "gp"
 		// c := "git push"
-		writeToDo(ali, c, homedir, upFile)
+		writeToDo(ali, c, homeDir, upFile)
 	},
 }
 
@@ -72,6 +77,17 @@ func auditCmd(ali string, upFile string) {
 	// Open up, look for keys
 	file, err := os.Open(upFile)
 	check(err)
+
+	defer func() {
+		//generally just a good idea to defer the file close immediately after you know it's open
+		//this will run as soon as auditCmd returns
+
+		err = file.Close()
+		if err != nil {
+			log.Print("Failed to close upfile\n", err)
+		}
+	}()
+
 	reader := bufio.NewScanner(file)
 	for reader.Scan() {
 		c := []byte(reader.Text())
@@ -82,20 +98,18 @@ func auditCmd(ali string, upFile string) {
 		if isIdentic == 1 {
 			fmt.Println("Woops, that alias is already used!")
 			os.Exit(0)
+		} else if err := reader.Err(); err != nil {
+			log.Fatal("Fatal Error while iterating reader in auditCmd\n", err)
 		} else {
 			fmt.Println("butts")
 			continue
 		}
-		defer file.Close()
-		if err := reader.Err(); err != nil {
-			log.Fatal(err)
-		}
-
 	}
 }
 
 // Writes aliases to up
 func writeToDo(ali string, c string, homedir string, upFile string) {
+
 	upObj := chore{
 		Alias: []string{strings.TrimSpace(ali)},
 		Cmd:   []string{c},
@@ -106,7 +120,7 @@ func writeToDo(ali string, c string, homedir string, upFile string) {
 	var ToDo chore
 	err = json.Unmarshal(jsonData, &ToDo)
 	check(err)
-	var flagCheck string = ToDo.Cmd[0]
+	flagCheck := ToDo.Cmd[0]
 	var cmdBroken = strings.Fields(flagCheck)
 	for i := range cmdBroken {
 		var flagBool = strings.HasPrefix(cmdBroken[i], "-")
@@ -116,7 +130,7 @@ func writeToDo(ali string, c string, homedir string, upFile string) {
 			// <| varN |> where N is the index in the command for later
 			// parsing.
 			if i+1 < len(cmdBroken) {
-				cmdBroken[i+1] = "|_var" + strconv.Itoa(i+1) + "_|"
+				cmdBroken[i+1] = fmt.Sprintf("|_var%d_|", i+1)
 			}
 			if i+1 > len(cmdBroken) {
 				continue
@@ -138,7 +152,7 @@ func writeToDo(ali string, c string, homedir string, upFile string) {
 	if _, err = f.WriteString(string(jsonData) + "\n"); err != nil {
 		panic(err)
 	}
-	fmt.Println("Alias configured for " + upList.Alias[0])
+	log.Printf("Alias configured for %s\n", upList.Alias[0])
 }
 
 func check(e error) {

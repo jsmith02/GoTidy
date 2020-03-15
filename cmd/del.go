@@ -17,7 +17,9 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
+	"path/filepath"
 )
 
 // delCmd represents the del command
@@ -37,8 +39,12 @@ var delCmd = &cobra.Command{
 	Removed di from up.
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		homedir := os.Getenv(("HOME"))
-		upFile := homedir + "/.tidy/up"
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal("Could not determine user home directory")
+		}
+
+		upFile := filepath.Join(homeDir, ".tidy", "up")
 		size, err := GetFileSize(upFile)
 		check(err)
 		if size == 0 {

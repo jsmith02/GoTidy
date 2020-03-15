@@ -19,7 +19,9 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -41,8 +43,12 @@ func init() {
 }
 
 func lineCounter() {
-	homedir := os.Getenv(("HOME"))
-	upFile := homedir + "/.tidy/up"
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal("Could not determine user home directory")
+	}
+
+	upFile := filepath.Join(homeDir, ".tidy", "up")
 	counter := 0
 	f, err := os.Open(upFile)
 	check(err)
