@@ -5,6 +5,8 @@ A golang CLI aliasing tool
 --------------------------------------------------------------------
 ### What it does
 Tidy sets up a simple file structure in your $HOME directory called .tidy. 
+
+
 In that directory it stores maps of commands you provide to it via Tidy's CLI
 
 Add a chore to tidy:
@@ -18,12 +20,26 @@ docker exec -it |_var_| /bin/sh
 Alias configured for de
 ```
 
+See all your configs by running list.
+
+```
+jms@jms-desktop:~/go/src/GoTidy$ tidy chore list
+gp : git push
+ssmp : aws ssm put-parameter --name |_var_| --type |_var_| --value |_var_|
+di : docker images
+ecr : aws ecr get-login --no-include-email
+p : psql -h |_var2_| -U |_var_| |_var_|
+de : docker exec -it |_var_| /bin/sh
+dont : aws ssm get-paramter --name |_var_| --with-decryption
+
+```
+
 These can be edited in that directory, if you don't identify the variables, it will try to parse the flags but may do so incorrectly right now. 
 
 
 ```
 jms@jms-desktop:~/.tidy$ cat up
-{"alias":["de"],"cmd":["docker exec -it |_var3_| /bin/sh"]}
+{"alias":["de"],"cmd":["docker exec -it |_var_| /bin/sh"]}
 jms@jms-desktop:~/.tidy$ 
 ```
 
@@ -36,18 +52,26 @@ jms@jms-desktop:~/go/src/GoTidy$
 
 ```
 
+Tidy will indicate when you've not provided what it needs to execute a command:
+
+```
+Incorrect number of arguments passed for alias, "ssmp".
+Arguments needed: 3
+Arguments provided: 1
+```
+
 Edit commands using tidy e
 
 ```
 jms@jms-desktop:~/go/src/GoTidy$ tidy e
-1) *{"alias":["do"],"cmd":["aws ssm get-parameter --region |_var4_| --name |_var6_| --with-decryption"]}
-2) *{"alias":["gc"],"cmd":["git commit -m |_var3_|"]}
+1) *{"alias":["do"],"cmd":["aws ssm get-parameter --region |_var_| --name |_var_| --with-decryption"]}
+2) *{"alias":["gc"],"cmd":["git commit -m |_var_|"]}
 3) *{"alias":["gp"],"cmd":["git push"]}
-4) *{"alias":["ssmp"],"cmd":["aws ssm put-parameter --name |_var4_| --type |_var6_| --value |_var8_|"]}
+4) *{"alias":["ssmp"],"cmd":["aws ssm put-parameter --name |_var_| --type |_var_| --value |_var8_|"]}
 5) *{"alias":["di"],"cmd":["docker images"]}
 6) *{"alias":["ecr"],"cmd":["aws ecr get-login --no-include-email"]}
-7) *{"alias":["p"],"cmd":["psql -h |_var2_| -U |_var4_| |_var_|"]}
-8) *{"alias":["de"],"cmd":["docker exec -it |_var3_| /bin/sh"]}
+7) *{"alias":["p"],"cmd":["psql -h |_var_| -U |_var_| |_var_|"]}
+8) *{"alias":["de"],"cmd":["docker exec -it |_var_| /bin/sh"]}
 Which config do you want to edit?
 
 ```
@@ -63,7 +87,13 @@ jms@jms-desktop:~/go/src/GoTidy$
 
 ```
 
+Remove commands from your up with delete or del. 
 
+
+```
+jms@jms-desktop:~/go/src/GoTidy$ tidy del di
+Removed di from up
+```
 
 ### Commands:
 An attempt at a CLI aliaser and my first foray into GoLang
@@ -87,8 +117,6 @@ Use "tidy [command] --help" for more information about a command.
 
 ### To Do:
 
-1. List Aliases
 2. Remove Alias
-3. Test new commands
 5. Add optional description
-6. Add ability to edit commands by giving the alias.
+7. Add export
