@@ -15,12 +15,12 @@
 package cmd
 
 import (
+	"GoTidy/utils"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -139,14 +139,9 @@ func findLine(oldAlias string, upFile string) int {
 
 // Deletes old line.
 func removeLine(upFile string, lineNumber int) {
-	path, err := exec.LookPath("sed")
-	check(err)
-	cmd := exec.Command(path, "-i ", strconv.Itoa(lineNumber)+"d", upFile)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+	err := utils.RemoveLineFromFile(upFile, lineNumber, upFile)
 	if err != nil {
-		os.Exit(0)
+		log.Fatal(err)
 	}
 }
 
