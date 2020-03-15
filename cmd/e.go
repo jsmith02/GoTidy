@@ -18,9 +18,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -131,19 +131,17 @@ func findLine(oldAlias string, upFile string) int {
 	}
 }
 
-// Deletes
-func removeLine(path string, lineNumber int) {
-	file, err := ioutil.ReadFile(path)
+// Deletes old line.
+func removeLine(upFile string, lineNumber int) {
+	path, err := exec.LookPath("sed")
+	check(err)
+	cmd := exec.Command(path, "-i ", strconv.Itoa(lineNumber)+"d", upFile)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
 	if err != nil {
-		panic(err)
+		os.Exit(0)
 	}
-
-	info, _ := os.Stat(path)
-	mode := info.Mode()
-
-	array := strings.Split(string(file), "\n")
-	array = append(array[:lineNumber], array[lineNumber+1:]...)
-	ioutil.WriteFile(path, []byte(strings.Join(array, "\n")), mode)
 }
 
 // Writes Replacements to up
@@ -171,7 +169,6 @@ func writeReplace(changeReq string, userEdit string, oldAlias string, oldCmd str
 	var flagCheck string = ToDo.Cmd[0]
 	var cmdBroken = strings.Fields(flagCheck)
 	// If we are editing the command, it has to be rebroken
-	if changeReq == "Command" {
 	for i := range cmdBroken {
 		var flagBool = strings.HasPrefix(cmdBroken[i], "-")
 		if flagBool == true {
@@ -186,40 +183,49 @@ func writeReplace(changeReq string, userEdit string, oldAlias string, oldCmd str
 				continue
 			}
 		}
-	} else {
-		
 	}
-	}
+	homedir := os.Getenv(("HOME"))
+	upFile := homedir + "/.tidy/up"
 	if changeReq == "Alias" {
-	upList := chore{
-		Alias: []string{strings.TrimSpace(userEdit)},
-		Cmd:   []string{strings.Join(oldCmd)},
-	} } else {
-	upList := chore{
-		Alias: []string{strings.TrimSpace(oldAlias)},
-		Cmd:   []string{strings.Join(cmdBroken, " ")},
+		oldconv := []string{oldCmd}
+		upList := chore{
+			Alias: []string{strings.TrimSpace(userEdit)},
+			Cmd:   []string{strings.Join(oldconv, " ")},
+		}
+		jsonData, err = json.Marshal(upList)
+		check(err)
+		var toList chore
+		err = json.Unmarshal(jsonData, &toList)
+		check(err)
+		f, err := os.OpenFile(upFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		check(err)
+		defer f.Close()
+		if _, err = f.WriteString(string(jsonData) + "\n"); err != nil {
+			panic(err)
+		}
+		fmt.Println("Alias configured for " + userEdit)
+	} else if changeReq == "Command" {
+		upList := chore{
+			Alias: []string{strings.TrimSpace(oldAlias)},
+			Cmd:   []string{strings.Join(cmdBroken, " ")},
+		}
+		jsonData, err = json.Marshal(upList)
+		check(err)
+		var toList chore
+		err = json.Unmarshal(jsonData, &toList)
+		check(err)
+		f, err := os.OpenFile(upFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		check(err)
+		defer f.Close()
+		if _, err = f.WriteString(string(jsonData) + "\n"); err != nil {
+			panic(err)
+		}
+		fmt.Println("Alias recconfigured for " + upList.Alias[0])
 	}
-	jsonData, err = json.Marshal(upList)
-	check(err)
-	var toList chore
-	err = json.Unmarshal(jsonData, &toList)
-	check(err)
-	f, err := os.OpenFile(upFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	check(err)
-	defer f.Close()
-	if _, err = f.WriteString(string(jsonData) + "\n"); err != nil {
-		panic(err)
-	}
-	fmt.Println("Alias configured for " + upList.Alias[0])
+
 }
 
 type chore struct {
 	Alias []string `json:"alias"`
 	Cmd   []string `json:"cmd"`
-}
-
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
 }

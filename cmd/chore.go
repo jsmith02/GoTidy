@@ -20,16 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
-
-	// "log"
-	// "encoding/gob"
-
 	"os"
-
-	// "strconv"
+	"strconv"
 	"strings"
-	// "encoding/csv"
+
 	"github.com/spf13/cobra"
 )
 
@@ -83,9 +77,13 @@ func auditCmd(ali string, upFile string) {
 		var iot chore
 		err = json.Unmarshal(c, &iot)
 		check(err)
-		if fmt.Sprint(iot.Alias[0]) == ali {
+		isIdentic := strings.Compare(iot.Alias[0], ali)
+		if isIdentic == 1 {
 			fmt.Println("Woops, that alias is already used!")
 			os.Exit(0)
+		} else {
+			fmt.Println("butts")
+			continue
 		}
 		defer file.Close()
 		if err := reader.Err(); err != nil {
@@ -140,11 +138,6 @@ func writeToDo(ali string, c string, homedir string, upFile string) {
 		panic(err)
 	}
 	fmt.Println("Alias configured for " + upList.Alias[0])
-}
-
-type chore struct {
-	Alias []string `json:"alias"`
-	Cmd   []string `json:"cmd"`
 }
 
 func check(e error) {
