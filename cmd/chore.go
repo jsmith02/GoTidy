@@ -95,13 +95,12 @@ func auditCmd(ali string, upFile string) {
 		err = json.Unmarshal(c, &iot)
 		check(err)
 		isIdentic := strings.Compare(iot.Alias[0], ali)
-		if isIdentic == 1 {
+		if isIdentic == 0 {
 			fmt.Println("Woops, that alias is already used!")
 			os.Exit(0)
 		} else if err := reader.Err(); err != nil {
 			log.Fatal("Fatal Error while iterating reader in auditCmd\n", err)
 		} else {
-			fmt.Println("butts")
 			continue
 		}
 	}
