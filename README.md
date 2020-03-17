@@ -23,7 +23,7 @@ Alias configured for de
 See all your configs by running list.
 
 ```
-jms@jms-desktop:~/go/src/GoTidy$ tidy chore list
+jms@jms-desktop:~/go/src/GoTidy$ tidy list
 gp : git push
 ssmp : aws ssm put-parameter --name |_var_| --type |_var_| --value |_var_|
 di : docker images
