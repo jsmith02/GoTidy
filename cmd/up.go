@@ -97,11 +97,10 @@ func exeCmd(taskAtHand []string) {
 	binCmd = taskAtHand[0]
 	command = taskAtHand[1:]
 	path, err := exec.LookPath(binCmd)
-	fmt.Println(path)
 	cmd := exec.Command(path, command...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+	go cmd.Run()
 	fmt.Println(err)
 	if err != nil {
 		os.Exit(0)
