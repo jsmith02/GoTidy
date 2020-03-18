@@ -97,13 +97,12 @@ func exeCmd(taskAtHand []string) {
 	binCmd = taskAtHand[0]
 	command = taskAtHand[1:]
 	path, err := exec.LookPath(binCmd)
-	if err != nil {
-		log.Fatal("Tidy can't find " + binCmd + " in your path or bin.")
-	}
+	fmt.Println(path)
 	cmd := exec.Command(path, command...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
+	fmt.Println(err)
 	if err != nil {
 		os.Exit(0)
 	}
